@@ -7,6 +7,8 @@ import utilities
 import implementation
 import os
 import json
+import urllib.parse
+
 os.environ["OPENAI_API_BASE"] = 'https://api.xiaoai.plus/v1'
 os.environ["OPENAI_API_KEY"] = 'sk-TWqvakjKo0TlqN7YE1Df97488f8446Ce8eAC79A081A74357'
 
@@ -105,21 +107,17 @@ cases = st.session_state['cases']
 if "case_conversations" not in st.session_state:
     st.session_state['case_conversations'] = {}
 
-# 创建搜索框
-search_query = st.sidebar.text_input("搜索案例", "")
-
-# 根据搜索查询过滤案例列表
-filtered_cases = [case for case in cases if search_query in case["Case Number"]]
+# 假设 cases 是一个包含所有案例的列表
 
 # 创建分组案例按钮
 cases_per_group = 10
-num_groups = (len(filtered_cases) + cases_per_group - 1) // cases_per_group
+num_groups = (len(cases) + cases_per_group - 1) // cases_per_group
 
 for i in range(num_groups):
     group_start_number = i * cases_per_group + 1
     group_end_number = (i + 1) * cases_per_group
 
-    group_cases = [case for case in filtered_cases
+    group_cases = [case for case in cases
                    if group_start_number <= int(case["Case Number"][2:].replace(":", "")) <= group_end_number]
 
     group_label = f"组{i + 1}：案例{group_start_number}-{group_end_number}"
@@ -145,32 +143,6 @@ def conversation_history_to_string(conversation_history):
         conversation_str += f"{role}: {content}\n"
     return conversation_str
 
-# 假设AgentImplementation已经被正确初始化
-#agent_implementation = implementation.AgentImplementation()
-
-# # 主动发消息，使用GPT生成开场白
-# def generate_opening_message(case):    
-#     personality = utilities.generate_personality()
-#     general_info = case.get("General Information", "无一般资料")
-#     basic_info = case.get("Basic Information", "无基本信息")
-#     conversation_history = ""  # 开场白通常是对话的开始，因此没有之前的对话历史
-#     self = f"你要根据下面信息模仿一个去心理咨询的真实来访者，你的信息为：{general_info}。你来这里咨询的原因是因为：{basic_info}，你的个性是{personality}。请根据这些信息主动说话和咨询师开始聊天，只需要说一两句话就可以了，保持你的警惕，不要泄露你的很多信息。记住，你只是想主动开启话题，不要一上来就好像闲聊了，你简单打招呼也可以，要符合你的人物性格和背景"
-    
-#     # 调用GPT生成开场白
-#     opening_message = agent_implementation.generate_conversation(self, conversation_history, case)
-#     return opening_message
-
-# # 检查是否需要发送开场白
-# def check_and_send_opening_message():
-#     selected_case = st.session_state.get("selected_case")
-#     if selected_case:
-#         case_number = selected_case.get("Case Number")
-#         # 使用案例编号作为标记的键
-#         if case_number and f"opening_sent_{case_number}" not in st.session_state:
-#             opening_message = generate_opening_message(selected_case)
-#             st.session_state["conversation_history"].append({"role": "client", "content": opening_message})
-#             st.session_state[f"opening_sent_{case_number}"] = True  # 标记该案例的开场白已发送
-
 # 显示选中的案例信息
 if "selected_case" in st.session_state:
     case = st.session_state["selected_case"]
@@ -180,43 +152,6 @@ if "selected_case" in st.session_state:
 
     # 检查并可能发送开场白
     #check_and_send_opening_message()
-
-
-
-# 定义发送消息函数
-def send_message():
-    user_input = st.session_state['user_input']
-    
-    if user_input:
-        with st.spinner("生成回复..."):
-            # 从会话状态中获取选择的案例
-            selected_case = st.session_state.get("selected_case")
-            # 将对话历史转换为字符串
-            conversation_history_string = conversation_history_to_string(st.session_state["conversation_history"])
-
-            if selected_case:
-                response = agent_implementation.generate_conversation(user_input, conversation_history_string, selected_case)
-            else:
-                response = "请先选择一个案例再开始对话。"
-
-            # 添加用户输入到对话历史
-            st.session_state["conversation_history"].append({"role": "therapist", "content": user_input})            
-            # 添加机器人回复到对话历史
-            st.session_state["conversation_history"].append({"role": "client", "content": response})
-        
-        # 更新案例的对话历史
-        selected_case_number = st.session_state["selected_case"]["Case Number"]
-        st.session_state["case_conversations"][selected_case_number] = st.session_state["conversation_history"]
-        
-        # 在发送消息后保存对话历史
-        file_name = f"{username}_conversation_history.txt"
-        conversation_history = st.session_state.get("conversation_history", [])
-        save_conversation_to_file(file_name, conversation_history)
-        
-        # 清空输入框
-        del st.session_state['user_input']
-        st.session_state['user_input'] = ''
-        st.rerun()
 
 # 保存对话历史到本地文件
 def save_conversation_to_file(filename, conversation_history):
@@ -258,8 +193,111 @@ def upload_file_to_github(filename, repo, path, token):
     else:
         st.error(f"上传文件失败: {response.json()}")
 
-# 用户名输入框
-username = st.text_input("输入您的用户名")
+# 定义发送消息函数
+def send_message():
+    
+    if user_input:
+        with st.spinner("生成回复..."):
+            # 从会话状态中获取选择的案例
+            selected_case = st.session_state.get("selected_case")
+            # 将对话历史转换为字符串
+            conversation_history_string = conversation_history_to_string(st.session_state["conversation_history"])
+
+            if selected_case:
+                response = agent_implementation.generate_conversation(user_input, conversation_history_string, selected_case)
+            else:
+                response = "请先选择一个案例再开始对话。"
+
+            # 添加用户输入到对话历史
+            st.session_state["conversation_history"].append({"role": "therapist", "content": user_input})            
+            # 添加机器人回复到对话历史
+            st.session_state["conversation_history"].append({"role": "client", "content": response})
+        
+        # 更新案例的对话历史
+        selected_case_number = st.session_state["selected_case"]["Case Number"]
+        st.session_state["case_conversations"][selected_case_number] = st.session_state["conversation_history"]
+        
+        
+        # 清空输入框
+        del st.session_state['user_input']
+        st.session_state['user_input'] = ''
+        st.rerun()
+
+
+# 如果session_state中没有username，初始化它为空字符串
+if 'username' not in st.session_state:
+    st.session_state.username = ''
+
+# # 如果用户名还没有被输入，显示输入框和提交按钮
+# if st.session_state.username == '':
+#     col1, col2 = st.columns([0.8, 0.2])  # 设置列布局，分配输入框和按钮的宽度
+
+#     with col1:
+#         username_input = st.text_input("输入您的用户名", key="username_input", placeholder="用户名")
+
+#     with col2:
+#         st.markdown(
+#             """
+#             <style>
+#             div.stButton > button {
+#                 height: 2.5em; /* Adjust height as needed */
+#                 width: 50%; /* 设置宽度为80% */
+#                 margin-top: 0em; /* Align button vertically */
+#                 padding: -1 ; /* 移除内边距 */
+#             }
+#             </style>
+#             """,
+#             unsafe_allow_html=True
+#         )
+#         submit_button = st.button("提交")
+#         if submit_button:
+#             if username_input:
+#                 st.session_state.username = username_input
+#             else:
+#                 st.error("用户名不能为空")
+
+# else:
+#     st.write(f"欢迎 {st.session_state.username}!")
+
+
+#如果用户名还没有被输入，显示输入框和提交按钮
+if 'username' not in st.session_state or st.session_state.username == '':
+    with st.form(key='user_form'):
+        col1, col2 = st.columns([0.8, 0.2])  # 设置列布局，分配输入框和按钮的宽度
+
+        with col1:
+            username_input = st.text_input("输入您的用户名", key="username_input", placeholder="用户名",)
+
+        with col2:
+            st.markdown(
+                """
+                <style>
+                div.stButton > button {
+                    height: 2.5em; /* Adjust height as needed */
+                    width: 100%; /* 设置宽度为100% */
+                    margin-top: 0em; /* Align button vertically */
+                    padding: 0; /* 移除内边距 */
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+            # 使用表单的提交按钮，而不是单独的按钮
+            submit_button = st.form_submit_button(label='提交')
+
+    # 当表单被提交时，检查用户名是否已输入
+    if submit_button:
+        if username_input:
+            st.session_state.username = username_input
+        else:
+            st.error("用户名不能为空")
+
+else:
+    st.write(f"欢迎 {st.session_state.username}!")
+
+
+# 在后续代码中使用username
+username = st.session_state.username
 
 # 设置对话框样式并显示对话内容
 for chat in st.session_state["conversation_history"]:
@@ -269,7 +307,7 @@ for chat in st.session_state["conversation_history"]:
         st.markdown(
             f"""
             <div style='text-align: left; margin-bottom: 20px;'>
-                <div style='font-size: 16px; color: #808080;'>🧑AI</div>
+                <div style='font-size: 16px; color: #808080;'>🧑来访者</div>
                 <div style='display: inline-block; text-align: left; background-color: #FFFFFF; padding: 10px; border-radius: 10px; font-size: 20px; margin-top: 5px; color: black;'>{content}</div>
             </div>
             """,
@@ -279,35 +317,44 @@ for chat in st.session_state["conversation_history"]:
         st.markdown(
             f"""
             <div style='text-align: right; margin-bottom: 20px;'>
-                <div style='font-size: 16px; color: #808080;'>👨‍⚕️咨询师</div>
+                <div style='font-size: 16px; color: #808080;'>👨‍⚕️{username}(咨询师)</div>
                 <div style='display: inline-block; text-align: right; background-color: #E0FFFF; padding: 10px; border-radius: 10px; font-size: 20px; margin-top: 5px; color: black;'>{content}</div>
             </div>
             """,
             unsafe_allow_html=True
         )
-    
+
+
+col3, col4 = st.columns([0.8, 0.2])
 
 # 用户输入框
-user_input = st.text_input("你的回复:", key="user_input", on_change=send_message, value="", placeholder="输入消息并按Enter发送")
+with col3:
+    user_input = st.text_input("你的回复:", key="user_input", on_change=send_message, value="", placeholder="输入消息并按Enter发送")
 
 # 发送按钮，并在发送消息后保存历史记录
-def send_button():
-    if st.button("发送") or user_input:
-        if not username:
-            st.error("请在发送消息前输入用户名。")
-            return
-        
-        send_message()
-    
-#下载按钮，用于将聊天历史记录下载为txt文件
-def download_conversation_button(conversation_str):
-    file_name = f"{username}_conversation_history.txt"
-    st.download_button(
-        label="下载聊天历史",
-        data=conversation_str,
-        file_name=file_name,
-        mime="text/plain"
+with col4:
+    st.markdown(
+        """
+        <style>
+        div.stButton > button {
+            height: 2.5em; /* 调整高度 */
+            width: 50%; /* 设置宽度为100% */
+            margin-top: 0.7em; /* 调整垂直对齐 */
+            padding: 0; /* 移除内边距 */
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
     )
+    def send_button():
+        if st.button("发送") or user_input:
+            if not username:
+                st.error("请在发送消息前输入用户名。")
+                return
+            send_message()
+    send_button()
+
+
 # 保存对话历史到字符串
 def save_conversation_to_string(conversation_history, selected_case):
     conversation_str = f"案例编号: {selected_case['Case Number']}\n"
@@ -317,9 +364,52 @@ def save_conversation_to_string(conversation_history, selected_case):
 
 selected_case = st.session_state.get("selected_case", {"Case Number": "未选择"})
 
-#在Streamlit应用中生成聊天历史记录字符串
+# 在Streamlit应用中生成聊天历史记录字符串
 conversation_str = save_conversation_to_string(st.session_state["conversation_history"], selected_case)
 
-# 调用按钮函数
-send_button()
-download_conversation_button(conversation_str)
+# URL encode the conversation string to make it safe for URLs
+conversation_str_encoded = urllib.parse.quote(conversation_str)
+
+# 添加HTML/CSS样式
+st.markdown(
+    """
+    <style>
+    .right-align-button {
+        position: fixed;
+        top: 50px; /* 将按钮向下移动到50px处 */
+        right: 10px;
+        z-index: 9999;
+    }
+    .right-align-button button {
+        background-color: #77AABF; /* 按钮背景颜色 */
+        color: white; /* 按钮文字颜色 */
+        padding: 10px 20px; /* 按钮内边距 */
+        font-size: 16px; /* 按钮字体大小 */
+        border: none; /* 去掉按钮边框 */
+        border-radius: 8px; /* 按钮圆角 */
+        cursor: pointer; /* 鼠标移上去时显示小手标志 */
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* 按钮阴影 */
+    }
+    .right-align-button button:hover {
+        background-color: #45a049; /* 鼠标悬停时的背景颜色 */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# 在页面右上角放置下载按钮
+st.markdown(
+    f"""
+    <div class="right-align-button">
+        <a href="data:text/plain;charset=utf-8,{conversation_str_encoded}" download="{username}_conversation_history.txt">
+            <button>📥下载聊天历史</button>
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# 调用发送按钮函数
+# send_button()
+
