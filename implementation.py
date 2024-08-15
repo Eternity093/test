@@ -35,7 +35,7 @@ class AgentImplementation():
         self.including_emotion = True
         self.including_trust = True
         self.including_personality = True
-        self.chat_model = ChatOpenAI(model='gpt-4',temperature=0.9, openai_api_key=os.getenv("OPENAI_API_KEY"))
+        self.chat_model = ChatOpenAI(model='gpt-4-turbo-preview',temperature=0.6, openai_api_key=os.getenv("OPENAI_API_KEY"))
 
     def generate_conversation(self, user_input, conversation_history, selected_case, username):
 
