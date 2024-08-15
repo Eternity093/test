@@ -119,7 +119,7 @@ conversation_template = """
     你对于咨询师的信任而产生的表达习惯: {trust}\n\n
  以上信息和指引将帮助你更准确地扮演来访者角色，记得根据对话的发展适时透露信息，使对话更加自然和符合心理咨询的过程。\n\n
     最近的聊天记录：===\n{conversation_history}\n
-    咨询师最后的一句话是：{user_input}，请生成你的下一句话。
+    咨询师最后的一句话是：{user_input}，请根据对方说的话生成你的下一句话，不要自顾自说话。
 """
 
 class AcquaintanceAnalyzer(LLMChain):
