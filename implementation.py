@@ -3,6 +3,28 @@ import agents
 import utilities
 import os
 from langchain_openai import ChatOpenAI
+import psycopg2
+import json
+
+
+# def save_conversation_log(username, case_number, general_info, basic_info, personality, emotion, trust, old_conversation_summary, recent_conversation, user_input, bot_response):
+#     conn = psycopg2.connect(
+#         dbname="ai_client",
+#         user="postgres",
+#         password="1996310ljkb",
+#         host="103.190.178.43",
+#         port="5432"
+#     )
+#     cursor = conn.cursor()
+
+#     cursor.execute("""
+#         INSERT INTO conversation_logs (username, case_number, general_info, basic_info, personality, emotion, trust, old_conversation_summary, recent_conversation, user_input, bot_response)
+#         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+#     """, (username, case_number, general_info, basic_info, personality, emotion, trust, old_conversation_summary, recent_conversation, user_input, bot_response))
+
+#     conn.commit()
+#     cursor.close()
+#     conn.close()
 
 class AgentImplementation():
     """
@@ -13,9 +35,9 @@ class AgentImplementation():
         self.including_emotion = True
         self.including_trust = True
         self.including_personality = True
-        self.chat_model = ChatOpenAI(model='gpt-4-turbo-preview',temperature=0.9, openai_api_key=os.getenv("OPENAI_API_KEY"))
+        self.chat_model = ChatOpenAI(model='gpt-4',temperature=0.9, openai_api_key=os.getenv("OPENAI_API_KEY"))
 
-    def generate_conversation(self, user_input, conversation_history, selected_case):
+    def generate_conversation(self, user_input, conversation_history, selected_case, username):
 
         selected_language_style_personality = ""
         if self.including_personality:
@@ -60,9 +82,23 @@ class AgentImplementation():
                                                                 'personality': selected_language_style_personality,
                                                                 'emotion': emotion_prompt,
                                                                 'trust':trust_prompt,
-                                                                'old_conversation_summary':utilities.summarize_old_conversation_history(conversation_history_array),
-                                                                'recent_conversation':conversation_history_array[-10:],
+                                                                'conversation_history': conversation_history,
                                                                 'user_input': user_input
                                                                 })
+
+        # 调用保存函数
+        # save_conversation_log(
+        #     username,
+        #     selected_case.get("Case Number", "无案例编号"),
+        #     selected_case.get("General Information", "无一般资料"),
+        #     selected_case.get("Basic Information", "无基本信息"),
+        #     selected_language_style_personality,
+        #     emotion_prompt,
+        #     trust_prompt,
+        #     utilities.summarize_old_conversation_history(conversation_history_array),
+        #     '\n'.join(conversation_history_array[-10:]),
+        #     user_input,
+        #     result_conversation_chain["text"],
+        # )
     
         return result_conversation_chain["text"]

@@ -204,7 +204,7 @@ def send_message():
             conversation_history_string = conversation_history_to_string(st.session_state["conversation_history"])
 
             if selected_case:
-                response = agent_implementation.generate_conversation(user_input, conversation_history_string, selected_case)
+                response = agent_implementation.generate_conversation(user_input, conversation_history_string, selected_case, username)
             else:
                 response = "请先选择一个案例再开始对话。"
 
@@ -228,39 +228,7 @@ def send_message():
 if 'username' not in st.session_state:
     st.session_state.username = ''
 
-# # 如果用户名还没有被输入，显示输入框和提交按钮
-# if st.session_state.username == '':
-#     col1, col2 = st.columns([0.8, 0.2])  # 设置列布局，分配输入框和按钮的宽度
-
-#     with col1:
-#         username_input = st.text_input("输入您的用户名", key="username_input", placeholder="用户名")
-
-#     with col2:
-#         st.markdown(
-#             """
-#             <style>
-#             div.stButton > button {
-#                 height: 2.5em; /* Adjust height as needed */
-#                 width: 50%; /* 设置宽度为80% */
-#                 margin-top: 0em; /* Align button vertically */
-#                 padding: -1 ; /* 移除内边距 */
-#             }
-#             </style>
-#             """,
-#             unsafe_allow_html=True
-#         )
-#         submit_button = st.button("提交")
-#         if submit_button:
-#             if username_input:
-#                 st.session_state.username = username_input
-#             else:
-#                 st.error("用户名不能为空")
-
-# else:
-#     st.write(f"欢迎 {st.session_state.username}!")
-
-
-#如果用户名还没有被输入，显示输入框和提交按钮
+# 检查是否已经输入用户名
 if 'username' not in st.session_state or st.session_state.username == '':
     with st.form(key='user_form'):
         col1, col2 = st.columns([0.8, 0.2])  # 设置列布局，分配输入框和按钮的宽度
@@ -273,31 +241,32 @@ if 'username' not in st.session_state or st.session_state.username == '':
                 """
                 <style>
                 div.stButton > button {
-                    height: 2.5em; /* Adjust height as needed */
-                    width: 100%; /* 设置宽度为100% */
-                    margin-top: 0em; /* Align button vertically */
+                    height: 2.5em; /* 调整按钮高度 */
+                    width: 100%; /* 设置按钮宽度为100% */
+                    margin-top: 0em; /* 按钮垂直对齐 */
                     padding: 0; /* 移除内边距 */
                 }
                 </style>
                 """,
                 unsafe_allow_html=True
             )
-            # 使用表单的提交按钮，而不是单独的按钮
+            # 表单的提交按钮
             submit_button = st.form_submit_button(label='提交')
 
-    # 当表单被提交时，检查用户名是否已输入
+    # 表单提交后，检查用户名是否已输入
     if submit_button:
         if username_input:
             st.session_state.username = username_input
+            st.experimental_rerun()  # 重新运行脚本，更新界面
         else:
             st.error("用户名不能为空")
-
 else:
+    # 使用输入的用户名
     st.write(f"欢迎 {st.session_state.username}!")
 
-
-# 在后续代码中使用username
 username = st.session_state.username
+
+
 
 # 设置对话框样式并显示对话内容
 for chat in st.session_state["conversation_history"]:
