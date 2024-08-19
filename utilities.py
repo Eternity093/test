@@ -12,7 +12,7 @@ def summarize_old_conversation_history(conversation_history):
     summary = "\n".join(topics)
     return summary
 
-##总结旧对话
+##人格选择
 def generate_personality():
     big_five_personality_language_style = {
         "openness": "以高度开放性人格表现，描述因理想化与现实落差、探索失败、自我怀疑、或过度追求新奇体验而引发的沮丧、无力感或焦虑。",
@@ -26,6 +26,28 @@ def generate_personality():
     print(selected_language_style_personality[1])
     return selected_language_style_personality[1]
 
+ ##依从性选择  
+def generate_compliance():
+    # 定义依从性选项和对应概率
+    compliance_levels = ["依从性高", "依从性低"]
+    probabilities = [3/4, 1/4]  # 依从性高的概率为3/4，依从性低的概率为1/4
+
+    # 根据概率随机选择依从性
+    selected_compliance = random.choices(compliance_levels, weights=probabilities, k=1)[0]
+
+    # 定义依从性对应的提示词
+    high_compliance_prompts = ["依从性高的个体在沟通中倾向于合作和顺从，愿意配合咨询师聊天，表达较为保守和谨慎。"
+    ]
+    
+    low_compliance_prompts = [
+        "依从性低的个体在沟通中表现出较强的自主性和独立性，可能会表达个人观点，使用批判性语言，可能会对咨询师的意见表示不支持，表现出更多的直接和个性化。"
+    ]
+
+    # 根据选择的依从性返回相应的提示词
+    if selected_compliance == "依从性高":
+        return random.choice(high_compliance_prompts)
+    else:
+        return random.choice(low_compliance_prompts)
     
 
 def load_cases(file_path):

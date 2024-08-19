@@ -23,12 +23,14 @@ cases = utilities.load_cases(file_path)
 
 # ========== 页面设置 ========== #
 
+
 # 设置页面标题
 st.set_page_config(page_title="AI 心理来访者", layout="wide")
-# 将标题放置在页面顶端
-st.markdown("<h1 style='text-align: center; font-size: 42px;color:，color:#F5F5F5'>🤖 AI 心理来访者</h1>", unsafe_allow_html=True)
 
-# 更改对话框背景
+# 将标题放置在页面顶端，并设置为白天模式颜色
+st.markdown("<h1 style='text-align: center; font-size: 42px; color: #333;'>🤖 AI 心理来访者</h1>", unsafe_allow_html=True)
+
+# 更改对话框背景为浅色
 def main_bg(main_bg):
     main_bg_ext = "png"
     st.markdown(
@@ -38,17 +40,18 @@ def main_bg(main_bg):
              background: url(data:image/{main_bg_ext};base64,{base64.b64encode(open(main_bg, "rb").read()).decode()});
              background-size: cover;
              background-position: center; /* 调整背景图片位置 */
+             background-color: #FFF; /* 设置背景颜色为白色 */
          }}
          </style>
          """,
         unsafe_allow_html=True
     )
 
-# 调用背景图片函数
+# 调用背景图片函数，确保背景图片适合白天模式
 bg = r'main.png'
 main_bg(bg)
 
-# 更改侧边栏样式
+# 更改侧边栏样式为浅色
 def sidebar_bg(side_bg):
    side_bg_ext = 'png'
    st.markdown(
@@ -56,15 +59,39 @@ def sidebar_bg(side_bg):
       <style>
       [data-testid="stSidebar"] > div:first-child {{
           background: url(data:image/{side_bg_ext};base64,{base64.b64encode(open(side_bg, "rb").read()).decode()});
+          background-color: #EEE; /* 设置侧边栏背景颜色为浅灰色 */
       }}
       </style>
       """,
       unsafe_allow_html=True,
    )
 
-# 调用侧边栏背景图片函数
+# 调用侧边栏背景图片函数，确保背景图片适合白天模式
 side = r'side.png'
 sidebar_bg(side)
+
+# 在页面中添加CSS样式以固定为白天模式
+st.markdown("""
+<style>
+    body {
+        background-color: #FFF; /* 设置背景颜色为白色 */
+        color: #333; /* 设置文本颜色为深灰色 */
+    }
+    .stApp {
+        background-color: #FFF; /* 确保应用区域背景为白色 */
+    }
+    [data-testid="stSidebar"] {
+        background-color: #EEE; /* 设置侧边栏背景为浅灰色 */
+    }
+    .stMarkdown, .stTextInput, .stSelectbox, .stCheckbox, .stRadio, .stButton, .stText, .stTextArea {
+        color: #333; /* 设置所有输入和文本元素的文本颜色为深灰色 */
+    }
+    .stTextInput input, .stSelectbox select, .stCheckbox input, .stRadio input, .stButton button {
+        color: #333; /* 设置输入框、选择框、复选框、单选框和按钮的文本颜色为深灰色 */
+        background-color: #FFF; /* 设置输入框、选择框、复选框、单选框和按钮的背景颜色为白色 */
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # 在侧边栏添加不同的机器人栏
 st.sidebar.header("请选择案例")
@@ -139,10 +166,10 @@ def save_conversation_to_string(conversation_history, selected_case):
     for chat in conversation_history:
         conversation_str += f"{chat['role']}: {chat['content']}\n"
     return conversation_str
-# 定义发送消息函数
+
+
 def send_message():
-    
-    if user_input:
+    if st.session_state.user_input:
         with st.spinner("生成回复..."):
             # 从会话状态中获取选择的案例
             selected_case = st.session_state.get("selected_case")
@@ -150,24 +177,24 @@ def send_message():
             conversation_history_string = conversation_history_to_string(st.session_state["conversation_history"])
 
             if selected_case:
-                response = agent_implementation.generate_conversation(user_input, conversation_history_string, selected_case, username)
+                response = agent_implementation.generate_conversation(st.session_state.user_input, conversation_history_string, selected_case, username)
             else:
                 response = "请先选择一个案例再开始对话。"
 
             # 添加用户输入到对话历史
-            st.session_state["conversation_history"].append({"role": "therapist", "content": user_input})            
+            st.session_state["conversation_history"].append({"role": "therapist", "content": st.session_state.user_input})
             # 添加机器人回复到对话历史
             st.session_state["conversation_history"].append({"role": "client", "content": response})
-        
-        # 更新案例的对话历史
-        selected_case_number = st.session_state["selected_case"]["Case Number"]
-        st.session_state["case_conversations"][selected_case_number] = st.session_state["conversation_history"]
-        
-        
-        # 清空输入框
-        del st.session_state['user_input']
-        st.session_state['user_input'] = ''
-        st.rerun()
+
+            # 更新案例的对话历史
+            selected_case_number = st.session_state["selected_case"]["Case Number"]
+            st.session_state["case_conversations"][selected_case_number] = st.session_state["conversation_history"]
+
+            # 清空输入框
+            st.session_state['user_input'] = ''
+            st.rerun()
+
+
 
 # ========== 主要流程 ========== #        
 
@@ -291,38 +318,39 @@ if "selected_case" in st.session_state:
                     f"""
                     <div style='text-align: right; margin-bottom: 20px;'>
                         <div style='font-size: 16px; color: #808080;'>👨‍⚕️{st.session_state.username}(咨询师)</div>
-                        <div style='display: inline-block; text-align: right; background-color: #E0FFFF; padding: 10px; border-radius: 10px; font-size: 20px; margin-top: 5px; color: black;'>{content}</div>
+                        <div style='display: inline-block; text-align: left; background-color: #E0FFFF; padding: 10px; border-radius: 10px; font-size: 20px; margin-top: 5px; color: black;'>{content}</div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
-        col3, col4 = st.columns([0.8, 0.2])
-        # 用户输入框
-        with col3:
-            user_input = st.text_input("开始你的对话吧:", key="user_input", on_change=send_message, value="", placeholder="输入消息并按Enter发送")
-
-        # 发送按钮，并在发送消息后保存历史记录
-        with col4:
-            st.markdown(
-                """
-                <style>
-                div.stButton > button {
-                    height: 2.5em; /* 调整高度 */
-                    width: 50%; /* 设置宽度为100% */
-                    margin-top: 0.7em; /* 调整垂直对齐 */
-                    padding: 0; /* 移除内边距 */
-                }
-                </style>
-                """,
-                unsafe_allow_html=True
-            )
-            def send_button():
-                if st.button("发送") or user_input:
-                    if not username:
-                        st.error("请在发送消息前输入用户名。")
-                        return
-                    send_message()
-            send_button()   
+        
+        with st.form(key="user_input_form", clear_on_submit=True):
+            col3, col4 = st.columns([0.8, 0.2])
+            
+            # 用户输入框
+            with col3:
+                user_input = st.text_input(
+                    "开始你的对话吧:", 
+                    key="user_input", 
+                    placeholder="输入消息并按Enter发送"
+                )
+            
+            # 发送按钮，并在发送消息后保存历史记录
+            with col4:
+                st.markdown(
+                    """
+                    <style>
+                    div.stButton > button {
+                        height: 2.5em; /* 调整高度 */
+                        width: 50%; /* 设置宽度为100% */
+                        margin-top: 0.7em; /* 调整垂直对齐 */
+                        padding: 0; /* 移除内边距 */
+                    }
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+                submit_button = st.form_submit_button(label="发送", on_click=send_message)
 
         # 在页面右上角放置下载按钮
         st.markdown(

@@ -34,15 +34,18 @@ class AgentImplementation():
     def __init__(self):
         self.including_emotion = True
         self.including_trust = True
+        self.including_basic = True
         self.including_personality = True
-        self.chat_model = ChatOpenAI(model='gpt-4-turbo-preview',temperature=0.6, openai_api_key=os.getenv("OPENAI_API_KEY"))
+        self.including_compliance =True
+        self.chat_model = ChatOpenAI(model='gpt-4-turbo-preview',temperature=0.9, openai_api_key=os.getenv("OPENAI_API_KEY"))
 
     def generate_conversation(self, user_input, conversation_history, selected_case, username):
-
+        selected_language_style_compliance = ""
         selected_language_style_personality = ""
         if self.including_personality:
             selected_language_style_personality = utilities.generate_personality()
-
+        if self.including_compliance:
+            selected_language_style_compliance = utilities.generate_compliance()
         # 信任识别机器人
         trust_prompt = ""
         if self.including_trust:
@@ -54,7 +57,18 @@ class AgentImplementation():
                                                                             'conversation_history': conversation_history
                                                                             })
             trust_prompt = result_acquaintance_analyzer_chain["text"]
-
+        #基本语言风格机器人
+        basic_prompt=""
+        if self.including_basic:
+            acquaintance_analyzer = agents.basic_styleGenerator.from_llm(self.chat_model, verbose=False)
+            result_acquaintance_analyzer_chain = acquaintance_analyzer.invoke({
+                                                                            'general_info': selected_case.get("General Information", "无一般资料"),
+                                                                            'basic_info': selected_case.get("Basic Information", "无基本信息"),
+                                                                            'personality':selected_language_style_personality, 
+                                                                            'compliance':selected_language_style_compliance,
+                                                                            })
+            basic_prompt = result_acquaintance_analyzer_chain["text"]
+        #情绪识别机器人
         emotion_prompt = ""
         if self.including_emotion:
             emotion_generator_chain_chatGPT = agents.EmotionGenerator.from_llm(self.chat_model, verbose=False)
@@ -82,6 +96,8 @@ class AgentImplementation():
                                                                 'personality': selected_language_style_personality,
                                                                 'emotion': emotion_prompt,
                                                                 'trust':trust_prompt,
+                                                                'basic':basic_prompt,
+                                                                'compliance':selected_language_style_compliance,
                                                                 'conversation_history': conversation_history,
                                                                 'user_input': user_input
                                                                 })
